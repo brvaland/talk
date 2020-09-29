@@ -1,13 +1,13 @@
 import { DirectiveResolverFn } from "graphql-tools";
 import { memoize } from "lodash";
 
+import { Context } from "coral-server/context";
 import {
   UserBanned,
   UserForbiddenError,
   UserSuspended,
   UserWarned,
 } from "coral-server/errors";
-import GraphContext from "coral-server/graph/context";
 import {
   consolidateUserStatus,
   consolidateUserSuspensionStatus,
@@ -70,10 +70,7 @@ function calculateAuthConditions(
 
 const calculateAuthConditionsMemoized = memoize(calculateAuthConditions);
 
-const auth: DirectiveResolverFn<
-  Record<string, string | undefined>,
-  GraphContext
-> = (
+const auth: DirectiveResolverFn<Record<string, string | undefined>, Context> = (
   next,
   src,
   { roles, userIDField, permit, unscoped = false }: AuthDirectiveArgs,

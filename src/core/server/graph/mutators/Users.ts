@@ -85,7 +85,7 @@ export const Users = (ctx: GraphContext) => ({
         ctx.tenant,
         ctx.config,
         ctx.mailerQueue,
-        ctx.signingConfig!,
+        ctx.signingConfig,
         { role, emails },
         ctx.user!,
         ctx.now
@@ -172,8 +172,7 @@ export const Users = (ctx: GraphContext) => ({
     createToken(
       ctx.mongo,
       ctx.tenant,
-      // NOTE: (wyattjoh) this will error if not provided.
-      ctx.signingConfig!,
+      ctx.signingConfig,
       ctx.user!,
       input.name,
       ctx.now
@@ -205,7 +204,7 @@ export const Users = (ctx: GraphContext) => ({
       ctx.tenant,
       ctx.mailerQueue,
       ctx.config,
-      ctx.signingConfig!,
+      ctx.signingConfig,
       ctx.user!,
       input.email,
       input.password
@@ -306,7 +305,7 @@ export const Users = (ctx: GraphContext) => ({
       ctx.mongo,
       ctx.tenant,
       ctx.config,
-      ctx.signingConfig!,
+      ctx.signingConfig,
       input.userID,
       ctx.now
     ),
@@ -316,7 +315,7 @@ export const Users = (ctx: GraphContext) => ({
       ctx.mailerQueue,
       ctx.tenant,
       ctx.config,
-      ctx.signingConfig!,
+      ctx.signingConfig,
       ctx.user!,
       ctx.now
     ),

@@ -1,55 +1,55 @@
 import { ApolloServer } from "apollo-server-express";
+import { container } from "tsyringe";
 
 import { CLIENT_ID_HEADER } from "coral-common/constants";
-import { AppOptions } from "coral-server/app";
+import { CONFIG, Config } from "coral-server/config";
 import GraphContext, { GraphContextOptions } from "coral-server/graph/context";
 import {
   ErrorApolloServerPlugin,
   LoggerApolloServerPlugin,
   MetricsApolloServerPlugin,
 } from "coral-server/graph/plugins";
+import SchemaService from "coral-server/graph/schema";
+import { MetricsService } from "coral-server/services/metrics";
 import { Request, TenantCoralRequest } from "coral-server/types/express";
 
-type ContextProviderOptions = Omit<AppOptions, "schema" | "metrics">;
+function contextProvider({ req }: { req: Request<TenantCoralRequest> }) {
+  // Grab the details from the Coral request.
+  const { id, now, tenant, logger, persisted, reporter } = req.coral;
 
-function contextProvider(options: ContextProviderOptions) {
-  return ({ req }: { req: Request<TenantCoralRequest> }) => {
-    // Grab the details from the Coral request.
-    const { id, now, tenant, logger, persisted } = req.coral;
-
-    // Create some new options to store the tenant context details inside.
-    const opts: GraphContextOptions = {
-      ...options,
-      id,
-      now,
-      req,
-      persisted,
-      tenant,
-      logger,
-    };
-
-    // Add the user if there is one.
-    if (req.user) {
-      opts.user = req.user;
-    }
-
-    // Add the clientID if there is one on the request.
-    const clientID = req.get(CLIENT_ID_HEADER);
-    if (clientID) {
-      // Limit the clientID to 36 characters (the length of a UUID).
-      opts.clientID = clientID.slice(0, 36);
-    }
-
-    // Return the compiled context.
-    return new GraphContext(opts);
+  // Create some new options to store the tenant context details inside.
+  const opts: GraphContextOptions = {
+    id,
+    logger,
+    now,
+    persisted,
+    reporter,
+    req,
+    tenant,
   };
+
+  // Add the user if there is one.
+  if (req.user) {
+    opts.user = req.user;
+  }
+
+  // Add the clientID if there is one on the request.
+  const clientID = req.get(CLIENT_ID_HEADER);
+  if (clientID) {
+    // Limit the clientID to 36 characters (the length of a UUID).
+    opts.clientID = clientID.slice(0, 36);
+  }
+
+  // Return the compiled context.
+  return new GraphContext(opts);
 }
 
-export const apolloGraphQLMiddleware = ({
-  schema,
-  metrics,
-  ...options
-}: AppOptions) => {
+export const apolloGraphQLMiddleware = () => {
+  // TODO: Replace with DI.
+  const { schema } = container.resolve(SchemaService);
+  const config = container.resolve<Config>(CONFIG);
+  const metrics = container.resolve(MetricsService);
+
   // Create the ApolloServer that we'll use to get the middleware from.
   const server = new ApolloServer({
     // Provide the executable schema that we assembled earlier.
@@ -57,13 +57,12 @@ export const apolloGraphQLMiddleware = ({
 
     // Create the context provider that'll create a new context for each
     // request.
-    context: contextProvider(options),
+    context: contextProvider,
 
     // Introspection is enabled when we aren't in a production environment or if
     // the GraphiQL is enabled.
     introspection:
-      options.config.get("env") !== "production" ||
-      options.config.get("enable_graphiql"),
+      config.get("env") !== "production" || config.get("enable_graphiql"),
 
     // Disable uploads, Coral doesn't handle any file uploads.
     uploads: false,
